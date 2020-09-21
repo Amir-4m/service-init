@@ -2,6 +2,8 @@
 
 PROJECT_NAME="$1"
 PROJECT_GIT_URL="$2"
+OWNER_USER="$3"
+
 if [ -z "$PROJECT_NAME" ]; then
 	echo "Project name is required !"
 	exit 1
@@ -10,6 +12,12 @@ fi
 if [ -z "$PROJECT_GIT_URL" ]; then
 	echo "Project git url is required !"
 	exit 1
+fi
+
+if [[ $PROJECT_GIT_URL =~ ^git@. ]]; then
+        echo "Enter git ssh key file address: "
+        read GIT_SSH_FILE
+	GIT_SSH="ssh -i $GIT_SSH_FILE"
 fi
 
 echo "$PROJECT_NAME"
@@ -24,8 +32,14 @@ virtualenv --relocatable "$PROJECT_DIR"/venv
 source "$PROJECT_DIR"/venv/bin/activate
 
 # clone project
-echo "input git branch name?"
+echo "Enter git branch name?"
 read gitbranch
+if [ -z "$GIT_SSH" ]; then
+        git clone -b "$gitbranch" "$PROJECT_GIT_URL" "$PROJECT_DIR"/project
+elif [ ! -z "$GIT_SSH" ]; then
+	"$GIT_SSH"  git clone -b "$gitbranch" "$PROJECT_GIT_URL" "$PROJECT_DIR"/project
+fi
+
 git clone -b "$gitbranch" "$PROJECT_GIT_URL" "$PROJECT_DIR"/project
 
 # set nginx
@@ -92,3 +106,9 @@ if [[ ($spyn == "y" || $btyn == "") ]]; then
 	supervisorctl update
 
 fi
+
+if [ ! -z "$OWNER_USER" ]; then
+	echo "Changing the owner of $PROJECT_DIR to $OWNER_USER"
+	chown -R $OWNER_USER $PROJECT_DIR
+fi
+
