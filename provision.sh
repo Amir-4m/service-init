@@ -14,7 +14,7 @@ if [ -z "$PROJECT_GIT_URL" ]; then
 	exit 1
 fi
 
-if [[ $PROJECT_GIT_URL =~ ^git@. ]]; then
+if ! [[ $PROJECT_GIT_URL =~ ^https://. ]]; then
         echo "Enter git ssh key file address: "
         read GIT_SSH_FILE
 	GIT_SSH="ssh -i $GIT_SSH_FILE"
