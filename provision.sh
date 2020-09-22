@@ -14,7 +14,6 @@ if [ -z "$PROJECT_GIT_URL" ]; then
 	exit 1
 fi
 
-echo "$PROJECT_NAME"
 echo "creating neccessary directories ..."
 
 PROJECT_DIR="/var/www/$PROJECT_NAME"
@@ -49,7 +48,7 @@ if [[ ($uwyn == "y" || $btyn == "") ]]; then
 echo "setting uwsgi configurations ..."
 echo "How many workers do you wish to set for uwsgi $PROJECT_NAME ?"
 read WORKER_PROCESSES
-sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$WORKER_PROCESSES/$WORKER_PROCESSES/g" uwsgi-template.ini > $PROJECT_DIR/confs/uwsgi.ini
+sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g" -e "s/\$WORKER_PROCESSES/$WORKER_PROCESSES/g" uwsgi-template.ini > $PROJECT_DIR/confs/uwsgi.ini
 ln -s $PROJECT_DIR/confs/uwsgi.ini /etc/uwsgi/vassals/$PROJECT_NAME.ini
 fi
 
@@ -60,36 +59,18 @@ if [[ ($spyn == "y" || $btyn == "") ]]; then
 	echo "setting supervisor configurations ..."
 	echo "Do you have beat for $PROJECT_NAME ? (y/n)"
 	read btyn
+	echo "setting worker and beat configurations ..."
+	echo "[group:$PROJECT_NAME]
+programs=$PROJECT_NAME-beat,$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
+
+	sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g -e "s/\$OWNER_USER/$OWNER_USER/g""  supervisor-worker-template.conf >> $PROJECT_DIR/confs/supervisor.conf
 	
-	echo "Do you have worker for $PROJECT_NAME ? (y/n)"
-	read wryn
-
-	if [[ (($btyn == "y" || $btyn == "") && ($wryn == "y" || $wryn == "")) ]]; then
-		echo "setting worker and beat configurations ..."
-		echo "[group:$PROJECT_NAME]
-		programs=$PROJECT_NAME-beat,$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
-		sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g"  supervisor-beat-template.conf >> $PROJECT_DIR/confs/supervisor.conf	
-		sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g"  supervisor-worker-template.conf >> $PROJECT_DIR/confs/supervisor.conf
-		ln -s $PROJECT_DIR/confs/supervisor.conf /etc/supervisor/conf.d/$PROJECT_NAME.conf
-
-	elif [[ (($btyn == "y" || $btyn == "") && ($wryn == "n")) ]]; then
-		echo "setting beat configurations ..."
-		echo "[group:$PROJECT_NAME]
-		programs=$PROJECT_NAME-beat" >> $PROJECT_DIR/confs/supervisor.conf
-		sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g"  supervisor-beat-template.conf >> $PROJECT_DIR/confs/supervisor.conf
-		ln -s $PROJECT_DIR/confs/supervisor.conf /etc/supervisor/conf.d/$PROJECT_NAME.conf
-
-	elif [[ (($wryn == "y" || $wryn == "") && ($btyn == "n")) ]]; then
-	        echo "setting worker configurations ..."
-        	echo "[group:$PROJECT_NAME]
-		programs=$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
-		sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g"  supervisor-worker-template.conf >> $PROJECT_DIR/confs/supervisor.conf
-		ln -s $PROJECT_DIR/confs/supervisor.conf /etc/supervisor/conf.d/$PROJECT_NAME.conf
-
-	else
-		echo "setting supervisor canceled!"
+	if [[ ($btyn == "y" || $btyn == "") ]]; then
+		sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g -e "s/\$OWNER_USER/$OWNER_USER/g""  supervisor-beat-template.conf >> $PROJECT_DIR/confs/supervisor.conf	
 	fi
 
+	ln -s $PROJECT_DIR/confs/supervisor.conf /etc/supervisor/conf.d/$PROJECT_NAME.conf
+		
 	supervisorctl reread
 	supervisorctl update
 
