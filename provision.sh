@@ -20,7 +20,6 @@ PROJECT_DIR="/var/www/$PROJECT_NAME"
 
 # create neccessary directories
 mkdir -p "$PROJECT_DIR" && mkdir -p "$PROJECT_DIR"/confs
-cp .coveragerc "$PROJECT_DIR"/project
 virtualenv --prompt="($PROJECT_NAME) " -q "$PROJECT_DIR"/venv
 virtualenv --relocatable "$PROJECT_DIR"/venv
 source "$PROJECT_DIR"/venv/bin/activate
@@ -29,6 +28,7 @@ echo "Enter git branch name?"
 read gitbranch
 
 git clone -b "$gitbranch" "$PROJECT_GIT_URL" "$PROJECT_DIR"/project
+cp .coveragerc "$PROJECT_DIR"/project/.coveragerc
 
 # set nginx
 echo "Do you wish to set nginx for $PROJECT_NAME ? (y/n)"
@@ -83,32 +83,26 @@ if [ ! -z "$OWNER_USER" ]; then
 fi
 
 
-echo "creating develop database ..."
-echo "enter maintainer users: "
+echo "creating main database ..."
+echo "Enter maintainer users: "
 read DB_MAINTAINERS
 su - postgres <<EOF
-psql postgres -c "CREATE DATABASE ${PROJECT_NAME}_dev WITH ENCODING 'UTF8'"
-psql postgres -c "grant all privileges on database ${PROJECT_NAME}_dev to ${DB_MAINTAINERS},$OWNER_USER;"
-
-echo "creating main database ..."
 psql postgres -c "CREATE DATABASE ${PROJECT_NAME} WITH ENCODING 'UTF8'"
-psql postgres -c "grant all privileges on database $PROJECT_NAME to $OWNER_USER;"
+psql postgres -c "grant all privileges on database ${PROJECT_NAME} to $DB_MAINTAINERS;"
 
 EOF
 echo "done"
 
 if [[ ($spyn == "y" || $spyn == "") ]]; then
-	echo "creating develop broker vhost ..."
-	echo "enter maintainer user: "
-	read BR_MAINTAINER
-	
-	rabbitmqctl add_vhost "${PROJECT_NAME}_dev"
-	rabbitmqctl set_permissions -p "${PROJECT_NAME}_dev" "$BR_MAINTAINER" ".*" ".*" ".*"
-	rabbitmqctl set_permissions -p "${PROJECT_NAME}_dev" "$OWNER_USER" ".*" ".*" ".*"
-
-	echo "creating main broker vhost ..."
+	echo "creating broker vhost ..."
 	rabbitmqctl add_vhost "${PROJECT_NAME}"
-	rabbitmqctl set_permissions -p "${PROJECT_NAME}" "$OWNER_USER" ".*" ".*" ".*"
+	echo "enter maintainer users: "
+	read BR_MAINTAINERS
+	for user in ${BR_MAINTAINERS//,/ }
+	do
+	        rabbitmqctl set_permissions -p "${PROJECT_NAME}" "$user" ".*" ".*" ".*"
+	done
+
 fi
 
 echo "All Done!"
