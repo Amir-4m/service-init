@@ -1,0 +1,14 @@
+[run]
+source = .
+branch = true
+omit = */migrations/*, docs/*, run_tests.py, manage.py, .eggs/*, conf/*, */services.py, */authentications.py, */apps.py , */venv/*, */admin.py, */utils.py, */tasks.py, */models.py
+
+
+[report]
+show_missing = true
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:

@@ -20,6 +20,7 @@ PROJECT_DIR="/var/www/$PROJECT_NAME"
 
 # create neccessary directories
 mkdir -p "$PROJECT_DIR" && mkdir -p "$PROJECT_DIR"/confs
+cp .coveragerc "$PROJECT_DIR"/project
 virtualenv --prompt="($PROJECT_NAME) " -q "$PROJECT_DIR"/venv
 virtualenv --relocatable "$PROJECT_DIR"/venv
 source "$PROJECT_DIR"/venv/bin/activate
