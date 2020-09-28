@@ -56,7 +56,7 @@ fi
 #set supervisor
 echo "Do you wish to set supervisor for $PROJECT_NAME ? (y/n)"
 read spyn
-if [[ ($spyn == "y" || $btyn == "") ]]; then
+if [[ ($spyn == "y" || $spyn == "") ]]; then
 	echo "setting supervisor configurations ..."
 	echo "Do you have beat for $PROJECT_NAME ? (y/n)"
 	read btyn
@@ -81,4 +81,37 @@ if [ ! -z "$OWNER_USER" ]; then
 	echo "Changing the owner of $PROJECT_DIR to $OWNER_USER"
 	chown -R $OWNER_USER: $PROJECT_DIR
 fi
+
+
+echo "creating develop database ..."
+echo "enter maintainer users: "
+read DB_MAINTAINERS
+su - postgres <<EOF
+psql postgres -c "CREATE DATABASE ${PROJECT_NAME}_dev WITH ENCODING 'UTF8'"
+psql postgres -c "grant all privileges on database ${PROJECT_NAME}_dev to ${DB_MAINTAINERS},$OWNER_USER;"
+
+echo "creating main database ..."
+psql postgres -c "CREATE DATABASE ${PROJECT_NAME} WITH ENCODING 'UTF8'"
+psql postgres -c "grant all privileges on database $PROJECT_NAME to $OWNER_USER;"
+
+EOF
+echo "done"
+
+if [[ ($spyn == "y" || $spyn == "") ]]; then
+	echo "creating develop broker vhost ..."
+	echo "enter maintainer user: "
+	read BR_MAINTAINER
+	
+	rabbitmqctl add_vhost "${PROJECT_NAME}_dev"
+	rabbitmqctl set_permissions -p "${PROJECT_NAME}_dev" "$BR_MAINTAINER" ".*" ".*" ".*"
+	rabbitmqctl set_permissions -p "${PROJECT_NAME}_dev" "$OWNER_USER" ".*" ".*" ".*"
+
+	echo "creating main broker vhost ..."
+	rabbitmqctl add_vhost "${PROJECT_NAME}"
+	rabbitmqctl set_permissions -p "${PROJECT_NAME}" "$OWNER_USER" ".*" ".*" ".*"
+fi
+
+echo "All Done!"
+
+
 
