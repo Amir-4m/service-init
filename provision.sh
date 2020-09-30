@@ -4,6 +4,12 @@ PROJECT_NAME="$1"
 PROJECT_GIT_URL="$2"
 OWNER_USER="$3"
 
+randomPassword()
+{ 
+	        </dev/urandom tr -dc '12345!@#$%qwertQWERTasdfgASDFGzxcvbZXCVB' | head -c8; echo ""
+		        }
+
+
 if [ -z "$PROJECT_NAME" ]; then
 	echo "Project name is required !"
 	exit 1
@@ -84,24 +90,39 @@ fi
 
 
 echo "creating main database ..."
-echo "Enter maintainer users: "
-read DB_MAINTAINERS
-su - postgres <<EOF
-psql postgres -c "CREATE DATABASE ${PROJECT_NAME} WITH ENCODING 'UTF8'"
-psql postgres -c "grant all privileges on database ${PROJECT_NAME} to $DB_MAINTAINERS;"
+echo "enter [user] [host] [port]: "
+  
+read DB_HOST_USER HOST PORT
+DB_USER_CREATE=${PROJECT_NAME}_user$(awk -v min=1 -v max=1000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
+DB_USER_CREATE_PASSWORD=$(randomPassword)
+sudo psql -U "$DB_HOST_USER" -h "$HOST" -p "$PORT" -W <<EOF
+CREATE DATABASE $PROJECT_NAME WITH ENCODING 'UTF8';
+CREATE USER $DB_USER_CREATE WITH PASSWORD '$DB_USER_CREATE_PASSWORD';
+GRANT ALL PRIVILEGES ON DATABASE $PROJECT_NAME TO $DB_USER_CREATE;
+
 
 EOF
+echo "USER OF THE DATABASE $PROJECT_NAME IS $DB_USER_CREATE WITH PASSWORD $DB_USER_CREATE_PASSWORD"
+echo "DB_USER=$DB_USER_CREATE
+DB_PASSWORD=$DB_USER_CREATE_PASSWORD" >> $PROJECT_DIR/project/.env
 echo "done"
 
 if [[ ($spyn == "y" || $spyn == "") ]]; then
 	echo "creating broker vhost ..."
-	rabbitmqctl add_vhost "${PROJECT_NAME}"
-	echo "enter maintainer users: "
-	read BR_MAINTAINERS
-	for user in ${BR_MAINTAINERS//,/ }
-	do
-	        rabbitmqctl set_permissions -p "${PROJECT_NAME}" "$user" ".*" ".*" ".*"
-	done
+	echo "enter [username] [password] [host] [port]: "
+	read RBMQ_USERNAME RBMQ_PASSWORD RBMQ_HOST RBMQ_PORT
+	RBMQ_USER_CREATE=${PROJECT_NAME}_user$(awk -v min=1 -v max=1000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
+	RBMQ_USER_CREATE_PASSWORD=$(randomPassword)
+	curl -u "$RBMQ_USERNAME":"$RBMQ_PASSWORD" -X PUT http://"$RBMQ_HOST":"$RBMQ_PORT"/api/vhosts/"$PROJECT_NAME"
+
+	
+	curl -i -u "$RBMQ_USERNAME":"$RBMQ_PASSWORD" -H "content-type:application/json"     -XPUT -d'{"password":"'$RBMQ_USER_CREATE_PASSWORD'","tags":"monitoring"}'     http://"$RBMQ_HOST":"$RBMQ_PORT"/api/users/"$RBMQ_USER_CREATE"
+        curl -i -u "$RBMQ_USERNAME":"$RBMQ_PASSWORD" -H "content-type:application/json"     -XPUT -d'{"configure":".*","write":".*","read":".*"}'     http://"$RBMQ_HOST":"$RBMQ_PORT"/api/permissions/"$PROJECT_NAME"/"$RBMQ_USER_CREATE"
+
+	echo "USER OF THE RBMQ $PROJECT_NAME IS $RBMQ_USER_CREATE WITH PASSWORD $RBMQ_USER_CREATE_PASSWORD"
+
+	echo "RBMQ_USER=$RBMQ_USER_CREATE
+RBMQ_PASSWORD=$RBMQ_USER_CREATE_PASSWORD" >> $PROJECT_DIR/project/.env
 
 fi
 
