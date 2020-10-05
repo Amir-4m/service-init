@@ -27,7 +27,6 @@ PROJECT_DIR="/var/www/$PROJECT_NAME"
 # create neccessary directories
 mkdir -p "$PROJECT_DIR" && mkdir -p "$PROJECT_DIR"/confs
 virtualenv --prompt="($PROJECT_NAME) " -q "$PROJECT_DIR"/venv
-virtualenv --relocatable "$PROJECT_DIR"/venv
 source "$PROJECT_DIR"/venv/bin/activate
 
 echo "Enter git branch name?"
@@ -95,7 +94,7 @@ echo "enter [user] [host] [port]: "
 read DB_HOST_USER HOST PORT
 DB_USER_CREATE=${PROJECT_NAME}_user$(awk -v min=1 -v max=1000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
 DB_USER_CREATE_PASSWORD=$(randomPassword)
-sudo psql -U "$DB_HOST_USER" -h "$HOST" -p "$PORT" -W <<EOF
+psql -U "$DB_HOST_USER" -h "$HOST" -p "$PORT" -W <<EOF
 CREATE DATABASE $PROJECT_NAME WITH ENCODING 'UTF8';
 CREATE USER $DB_USER_CREATE WITH PASSWORD '$DB_USER_CREATE_PASSWORD';
 GRANT ALL PRIVILEGES ON DATABASE $PROJECT_NAME TO $DB_USER_CREATE;
