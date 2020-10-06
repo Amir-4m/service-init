@@ -69,10 +69,10 @@ if [[ ($spyn == "y" || $spyn == "") ]]; then
 	echo "[group:$PROJECT_NAME]
 programs=$PROJECT_NAME-beat,$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
 
-	sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g -e "s/\$OWNER_USER/$OWNER_USER/g""  supervisor-worker-template.conf >> $PROJECT_DIR/confs/supervisor.conf
+	sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g"  supervisor-worker-template.conf >> $PROJECT_DIR/confs/supervisor.conf
 	
 	if [[ ($btyn == "y" || $btyn == "") ]]; then
-		sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g -e "s/\$OWNER_USER/$OWNER_USER/g""  supervisor-beat-template.conf >> $PROJECT_DIR/confs/supervisor.conf	
+		sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g"  supervisor-beat-template.conf >> $PROJECT_DIR/confs/supervisor.conf	
 	fi
 
 	ln -s $PROJECT_DIR/confs/supervisor.conf /etc/supervisor/conf.d/$PROJECT_NAME.conf
