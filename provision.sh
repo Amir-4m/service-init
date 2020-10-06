@@ -54,7 +54,16 @@ if [[ ($uwyn == "y" || $btyn == "") ]]; then
 echo "setting uwsgi configurations ..."
 echo "How many workers do you wish to set for uwsgi $PROJECT_NAME ?"
 read WORKER_PROCESSES
-sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g" -e "s/\$WORKER_PROCESSES/$WORKER_PROCESSES/g" uwsgi-template.ini > $PROJECT_DIR/confs/uwsgi.ini
+
+echo "Do you wish to enable threading? (y/n)"
+read thread
+if [[ ($thread == "y" || $thread == "") ]]; then
+	IS_THREAD="true"
+else 
+	IS_THREAD="false"
+fi
+
+sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g" -e "s/\$WORKER_PROCESSES/$WORKER_PROCESSES/g" -e "s/\$IS_THREAD/$IS_THREAD/g"  uwsgi-template.ini > $PROJECT_DIR/confs/uwsgi.ini
 ln -s $PROJECT_DIR/confs/uwsgi.ini /etc/uwsgi/vassals/$PROJECT_NAME.ini
 fi
 
