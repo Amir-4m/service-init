@@ -39,8 +39,10 @@ cp .coveragerc "$PROJECT_DIR"/project/.coveragerc
 echo "Do you wish to set nginx for $PROJECT_NAME ? (y/n)"
 read ngyn
 if [[ ($ngyn == "y" || $ngyn == "") ]]; then
+echo "Enter your server name: "
+read SERVER_NAME
 echo "setting nginx configurations ..."
-sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" nginx-template.conf > $PROJECT_DIR/confs/nginx.conf
+sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$SERVER_NAME/$SERVER_NAME/g" nginx-template.conf > $PROJECT_DIR/confs/nginx.conf
 ln -s $PROJECT_DIR/confs/nginx.conf /etc/nginx/sites-available/$PROJECT_NAME.conf
 ln -s /etc/nginx/sites-available/$PROJECT_NAME.conf /etc/nginx/sites-enabled/$PROJECT_NAME.conf
 nginx -t
