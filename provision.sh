@@ -126,7 +126,7 @@ if [[ ($spyn == "y" || $spyn == "") ]]; then
 	echo "enter [username] [password] [host] [port](optional): "
 	read RBMQ_USERNAME RBMQ_PASSWORD RBMQ_HOST RBMQ_PORT
 	if [ -z "$RBMQ_PORT" ]; then
-	PORT=15672
+	RBMQ_PORT=15672
   fi
 
 	RBMQ_USER_CREATE=${PROJECT_NAME}_user$(awk -v min=1 -v max=1000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
