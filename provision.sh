@@ -77,8 +77,13 @@ if [[ ($spyn == "y" || $spyn == "") ]]; then
 	echo "Do you have beat for $PROJECT_NAME ? (y/n)"
 	read btyn
 	echo "setting worker and beat configurations ..."
-	echo "[group:$PROJECT_NAME]
+	if [[ ($btyn == "y" || $btyn == "") ]]; then
+		echo "[group:$PROJECT_NAME]
 programs=$PROJECT_NAME-beat,$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
+  else
+    echo "[group:$PROJECT_NAME]
+programs=$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
+	fi
 
 	sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g"  supervisor-worker-template.conf >> $PROJECT_DIR/confs/supervisor.conf
 	
@@ -93,16 +98,15 @@ programs=$PROJECT_NAME-beat,$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervis
 
 fi
 
-if [ ! -z "$OWNER_USER" ]; then
-	echo "Changing the owner of $PROJECT_DIR to $OWNER_USER"
-	chown -R $OWNER_USER: $PROJECT_DIR
+echo "creating main database ..."
+echo "enter [user] [host] [port](optional): "
+
+read DB_HOST_USER HOST PORT
+
+if [ -z "$PORT" ]; then
+	PORT=5432
 fi
 
-
-echo "creating main database ..."
-echo "enter [user] [host] [port]: "
-  
-read DB_HOST_USER HOST PORT
 DB_USER_CREATE=${PROJECT_NAME}_user$(awk -v min=1 -v max=1000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
 DB_USER_CREATE_PASSWORD=$(randomPassword)
 psql -U "$DB_HOST_USER" -h "$HOST" -p "$PORT" -W <<EOF
@@ -119,8 +123,12 @@ echo "done"
 
 if [[ ($spyn == "y" || $spyn == "") ]]; then
 	echo "creating broker vhost ..."
-	echo "enter [username] [password] [host] [port]: "
+	echo "enter [username] [password] [host] [port](optional): "
 	read RBMQ_USERNAME RBMQ_PASSWORD RBMQ_HOST RBMQ_PORT
+	if [ -z "$RBMQ_PORT" ]; then
+	PORT=15672
+  fi
+
 	RBMQ_USER_CREATE=${PROJECT_NAME}_user$(awk -v min=1 -v max=1000 'BEGIN{srand(); print int(min+rand()*(max-min+1))}')
 	RBMQ_USER_CREATE_PASSWORD=$(randomPassword)
 	curl -u "$RBMQ_USERNAME":"$RBMQ_PASSWORD" -X PUT http://"$RBMQ_HOST":"$RBMQ_PORT"/api/vhosts/"$PROJECT_NAME"
@@ -134,6 +142,11 @@ if [[ ($spyn == "y" || $spyn == "") ]]; then
 	echo "RBMQ_USER=$RBMQ_USER_CREATE
 RBMQ_PASSWORD=$RBMQ_USER_CREATE_PASSWORD" >> $PROJECT_DIR/project/.env
 
+fi
+
+if [ ! -z "$OWNER_USER" ]; then
+	echo "Changing the owner of $PROJECT_DIR to $OWNER_USER"
+	chown -R $OWNER_USER: $PROJECT_DIR
 fi
 
 echo "All Done!"
