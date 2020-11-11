@@ -26,7 +26,7 @@ PROJECT_DIR="/var/www/$PROJECT_NAME"
 
 # create neccessary directories
 mkdir -p "$PROJECT_DIR" && mkdir -p "$PROJECT_DIR"/confs
-virtualenv --prompt="($PROJECT_NAME) " -q "$PROJECT_DIR"/venv
+virtualenv -p python3 --prompt="($PROJECT_NAME) " -q "$PROJECT_DIR"/venv
 source "$PROJECT_DIR"/venv/bin/activate
 
 echo "Enter git branch name?"
@@ -133,19 +133,18 @@ fi
 echo "DEBUG=False
 DEVEL=False
 ALLOWED_HOSTS='*'
-SECRET_KEY=''" >> $PROJECT_DIR/project/.env
+SECRET_KEY='fake-key'" >> $PROJECT_DIR/project/.env
 
-cd $PROJECT_DIR/project
-pip install -r requirements.txt
-python manage.py makemigrations
-python manage.py migrate
-python manage.py collectstatic --noinput
-python manage.py loaddata fixtures/*
+pip install -r $PROJECT_DIR/project/requirements.txt
+python $PROJECT_DIR/project/manage.py makemigrations
+python $PROJECT_DIR/project/manage.py migrate
+python $PROJECT_DIR/project/manage.py collectstatic --noinput
+python $PROJECT_DIR/project/manage.py loaddata fixtures/*
 
 #set uwsgi
 echo "Do you wish to set uwsgi for $PROJECT_NAME ? (y/n)"
 read uwyn
-if [[ ($uwyn == "y" || $btyn == "") ]]; then
+if [[ ($uwyn == "y" || $uwyn == "") ]]; then
 echo "setting uwsgi configurations ..."
 echo "How many workers do you wish to set for uwsgi $PROJECT_NAME ?"
 read WORKER_PROCESSES
@@ -158,7 +157,7 @@ else
 	IS_THREAD="false"
 fi
 
-sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g" -e "s/\$WORKER_PROCESSES/$WORKER_PROCESSES/g" -e "s/\$IS_THREAD/$IS_THREAD/g"  uwsgi-template.ini > $PROJECT_DIR/confs/uwsgi.ini
+sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g" -e "s/\$WORKER_PROCESSES/$WORKER_PROCESSES/g" -e "s/\$IS_THREAD/$IS_THREAD/g" uwsgi-template.ini > $PROJECT_DIR/confs/uwsgi.ini
 ln -s $PROJECT_DIR/confs/uwsgi.ini /etc/uwsgi/vassals/$PROJECT_NAME.ini
 fi
 if [[ ($spyn == "y" || $spyn == "") ]]; then
