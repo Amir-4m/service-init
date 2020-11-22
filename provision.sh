@@ -135,12 +135,6 @@ DEVEL=False
 ALLOWED_HOSTS='*'
 SECRET_KEY='fake-key'" >> $PROJECT_DIR/project/.env
 
-pip install -r $PROJECT_DIR/project/requirements.txt
-python $PROJECT_DIR/project/manage.py makemigrations
-python $PROJECT_DIR/project/manage.py migrate
-python $PROJECT_DIR/project/manage.py collectstatic --noinput
-python $PROJECT_DIR/project/manage.py loaddata fixtures/*
-
 #set uwsgi
 echo "Do you wish to set uwsgi for $PROJECT_NAME ? (y/n)"
 read uwyn
@@ -168,6 +162,12 @@ if [ ! -z "$OWNER_USER" ]; then
 	echo "Changing the owner of $PROJECT_DIR to $OWNER_USER"
 	chown -R $OWNER_USER: $PROJECT_DIR
 fi
+
+pip install -r $PROJECT_DIR/project/requirements.txt
+python $PROJECT_DIR/project/manage.py makemigrations
+python $PROJECT_DIR/project/manage.py migrate
+python $PROJECT_DIR/project/manage.py collectstatic --noinput
+python $PROJECT_DIR/project/manage.py loaddata fixtures/*
 
 echo "All Done!"
 
