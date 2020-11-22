@@ -26,7 +26,7 @@ PROJECT_DIR="/var/www/$PROJECT_NAME"
 
 # create neccessary directories
 mkdir -p "$PROJECT_DIR" && mkdir -p "$PROJECT_DIR"/confs
-virtualenv --prompt="($PROJECT_NAME) " -q "$PROJECT_DIR"/venv
+virtualenv -p python3 --prompt="($PROJECT_NAME) " -q "$PROJECT_DIR"/venv
 source "$PROJECT_DIR"/venv/bin/activate
 
 echo "Enter git branch name?"
@@ -48,56 +48,7 @@ ln -s /etc/nginx/sites-available/$PROJECT_NAME.conf /etc/nginx/sites-enabled/$PR
 nginx -t
 service nginx restart
 fi
-
-#set uwsgi
-echo "Do you wish to set uwsgi for $PROJECT_NAME ? (y/n)"
-read uwyn
-if [[ ($uwyn == "y" || $btyn == "") ]]; then
-echo "setting uwsgi configurations ..."
-echo "How many workers do you wish to set for uwsgi $PROJECT_NAME ?"
-read WORKER_PROCESSES
-
-echo "Do you wish to enable threading? (y/n)"
-read thread
-if [[ ($thread == "y" || $thread == "") ]]; then
-	IS_THREAD="true"
-else 
-	IS_THREAD="false"
-fi
-
-sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g" -e "s/\$WORKER_PROCESSES/$WORKER_PROCESSES/g" -e "s/\$IS_THREAD/$IS_THREAD/g"  uwsgi-template.ini > $PROJECT_DIR/confs/uwsgi.ini
-ln -s $PROJECT_DIR/confs/uwsgi.ini /etc/uwsgi/vassals/$PROJECT_NAME.ini
-fi
-
-#set supervisor
-echo "Do you wish to set supervisor for $PROJECT_NAME ? (y/n)"
-read spyn
-if [[ ($spyn == "y" || $spyn == "") ]]; then
-	echo "setting supervisor configurations ..."
-	echo "Do you have beat for $PROJECT_NAME ? (y/n)"
-	read btyn
-	echo "setting worker and beat configurations ..."
-	if [[ ($btyn == "y" || $btyn == "") ]]; then
-		echo "[group:$PROJECT_NAME]
-programs=$PROJECT_NAME-beat,$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
-  else
-    echo "[group:$PROJECT_NAME]
-programs=$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
-	fi
-
-	sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g"  supervisor-worker-template.conf >> $PROJECT_DIR/confs/supervisor.conf
-	
-	if [[ ($btyn == "y" || $btyn == "") ]]; then
-		sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g"  supervisor-beat-template.conf >> $PROJECT_DIR/confs/supervisor.conf	
-	fi
-
-	ln -s $PROJECT_DIR/confs/supervisor.conf /etc/supervisor/conf.d/$PROJECT_NAME.conf
-		
-	supervisorctl reread
-	supervisorctl update
-
-fi
-
+# creating database
 echo "creating main database ..."
 echo "enter [user] [host] [port](optional): "
 
@@ -117,12 +68,43 @@ GRANT ALL PRIVILEGES ON DATABASE $PROJECT_NAME TO $DB_USER_CREATE;
 
 EOF
 echo "USER OF THE DATABASE $PROJECT_NAME IS $DB_USER_CREATE WITH PASSWORD $DB_USER_CREATE_PASSWORD"
-echo "DB_USER=$DB_USER_CREATE
-DB_PASSWORD=$DB_USER_CREATE_PASSWORD
-DB_NAME=$PROJECT_NAME
-DB_HOST=$HOST
-DB_PORT=$PORT" >> $PROJECT_DIR/project/.env
+echo "DB_ENGINE='django.db.backends.postgresql_psycopg2'
+DB_USER='$DB_USER_CREATE'
+DB_PASS='$DB_USER_CREATE_PASSWORD'
+DB_NAME='$PROJECT_NAME'
+DB_HOST='$HOST'
+DB_PORT='$PORT'" >> $PROJECT_DIR/project/.env
 echo "done"
+
+
+#set supervisor
+echo "Do you wish to set supervisor for $PROJECT_NAME ? (y/n)"
+read spyn
+if [[ ($spyn == "y" || $spyn == "") ]]; then
+	echo "setting supervisor configurations ..."
+	echo "Do you have beat for $PROJECT_NAME ? (y/n)"
+	read btyn
+	echo "setting worker and beat configurations ..."
+	if [[ ($btyn == "y" || $btyn == "") ]]; then
+		echo "[group:$PROJECT_NAME]
+programs=$PROJECT_NAME-beat,$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
+  else
+    echo "[group:$PROJECT_NAME]
+programs=$PROJECT_NAME-worker" >> $PROJECT_DIR/confs/supervisor.conf
+	fi
+
+	sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g"  supervisor-worker-template.conf >> $PROJECT_DIR/confs/supervisor.conf
+
+	if [[ ($btyn == "y" || $btyn == "") ]]; then
+		sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g"  supervisor-beat-template.conf >> $PROJECT_DIR/confs/supervisor.conf
+	fi
+
+	ln -s $PROJECT_DIR/confs/supervisor.conf /etc/supervisor/conf.d/$PROJECT_NAME.conf
+
+	supervisorctl reread
+	supervisorctl update
+
+fi
 
 if [[ ($spyn == "y" || $spyn == "") ]]; then
 	echo "creating broker vhost ..."
@@ -136,19 +118,52 @@ if [[ ($spyn == "y" || $spyn == "") ]]; then
 	RBMQ_USER_CREATE_PASSWORD=$(randomPassword)
 	curl -u "$RBMQ_USERNAME":"$RBMQ_PASSWORD" -X PUT http://"$RBMQ_HOST":"$RBMQ_PORT"/api/vhosts/"$PROJECT_NAME"
 
-	
+
 	curl -i -u "$RBMQ_USERNAME":"$RBMQ_PASSWORD" -H "content-type:application/json"     -XPUT -d'{"password":"'$RBMQ_USER_CREATE_PASSWORD'","tags":"monitoring"}'     http://"$RBMQ_HOST":"$RBMQ_PORT"/api/users/"$RBMQ_USER_CREATE"
         curl -i -u "$RBMQ_USERNAME":"$RBMQ_PASSWORD" -H "content-type:application/json"     -XPUT -d'{"configure":".*","write":".*","read":".*"}'     http://"$RBMQ_HOST":"$RBMQ_PORT"/api/permissions/"$PROJECT_NAME"/"$RBMQ_USER_CREATE"
 
 	echo "USER OF THE RBMQ $PROJECT_NAME IS $RBMQ_USER_CREATE WITH PASSWORD $RBMQ_USER_CREATE_PASSWORD"
 
-	echo "CELERY_USER=$RBMQ_USER_CREATE
-CELERY_PASS=$RBMQ_USER_CREATE_PASSWORD
-CELERY_HOST=$RBMQ_HOST:$RBMQ_PORT/$PROJECT_NAME" >> $PROJECT_DIR/project/.env
-
-
+	echo "CELERY_USER='$RBMQ_USER_CREATE'
+CELERY_PASS='$RBMQ_USER_CREATE_PASSWORD'
+CELERY_HOST='$RBMQ_HOST:$RBMQ_PORT/$PROJECT_NAME'" >> $PROJECT_DIR/project/.env
 fi
 
+# installing dependencies and migrations
+echo "DEBUG=False
+DEVEL=False
+ALLOWED_HOSTS='*'
+SECRET_KEY='fake-key'" >> $PROJECT_DIR/project/.env
+
+pip install -r $PROJECT_DIR/project/requirements.txt
+python $PROJECT_DIR/project/manage.py makemigrations
+python $PROJECT_DIR/project/manage.py migrate
+python $PROJECT_DIR/project/manage.py collectstatic --noinput
+python $PROJECT_DIR/project/manage.py loaddata fixtures/*
+
+#set uwsgi
+echo "Do you wish to set uwsgi for $PROJECT_NAME ? (y/n)"
+read uwyn
+if [[ ($uwyn == "y" || $uwyn == "") ]]; then
+echo "setting uwsgi configurations ..."
+echo "How many workers do you wish to set for uwsgi $PROJECT_NAME ?"
+read WORKER_PROCESSES
+
+echo "Do you wish to enable threading? (y/n)"
+read thread
+if [[ ($thread == "y" || $thread == "") ]]; then
+	IS_THREAD="true"
+else 
+	IS_THREAD="false"
+fi
+
+sed -e "s/\$PROJECT_NAME/$PROJECT_NAME/g" -e "s/\$OWNER_USER/$OWNER_USER/g" -e "s/\$WORKER_PROCESSES/$WORKER_PROCESSES/g" -e "s/\$IS_THREAD/$IS_THREAD/g" uwsgi-template.ini > $PROJECT_DIR/confs/uwsgi.ini
+ln -s $PROJECT_DIR/confs/uwsgi.ini /etc/uwsgi/vassals/$PROJECT_NAME.ini
+fi
+if [[ ($spyn == "y" || $spyn == "") ]]; then
+	supervisorctl reread
+	supervisorctl update
+fi	
 if [ ! -z "$OWNER_USER" ]; then
 	echo "Changing the owner of $PROJECT_DIR to $OWNER_USER"
 	chown -R $OWNER_USER: $PROJECT_DIR
