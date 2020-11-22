@@ -126,7 +126,7 @@ if [[ ($spyn == "y" || $spyn == "") ]]; then
 
 	echo "CELERY_USER='$RBMQ_USER_CREATE'
 CELERY_PASS='$RBMQ_USER_CREATE_PASSWORD'
-CELERY_HOST='$RBMQ_HOST:$RBMQ_PORT/$PROJECT_NAME'" >> $PROJECT_DIR/project/.env
+CELERY_HOST='$RBMQ_HOST:5672/$PROJECT_NAME'" >> $PROJECT_DIR/project/.env
 fi
 
 # installing dependencies and migrations
