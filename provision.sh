@@ -6,7 +6,7 @@ OWNER_USER="$3"
 
 randomPassword()
 { 
-	        </dev/urandom tr -dc '12345!@#$%qwertQWERTasdfgASDFGzxcvbZXCVB' | head -c8; echo ""
+	        </dev/urandom tr -dc '12345!#$qwertQWERTasdfgASDFGzxcvbZXCVB' | head -c8; echo ""
 		        }
 
 
