@@ -6,7 +6,7 @@ OWNER_USER="$3"
 
 randomPassword()
 { 
-	        </dev/urandom tr -dc '12345!@#$%qwertQWERTasdfgASDFGzxcvbZXCVB' | head -c8; echo ""
+	        </dev/urandom tr -dc '12345!#$qwertQWERTasdfgASDFGzxcvbZXCVB' | head -c8; echo ""
 		        }
 
 
@@ -126,7 +126,7 @@ if [[ ($spyn == "y" || $spyn == "") ]]; then
 
 	echo "CELERY_USER='$RBMQ_USER_CREATE'
 CELERY_PASS='$RBMQ_USER_CREATE_PASSWORD'
-CELERY_HOST='$RBMQ_HOST:$RBMQ_PORT/$PROJECT_NAME'" >> $PROJECT_DIR/project/.env
+CELERY_HOST='$RBMQ_HOST:5672/$PROJECT_NAME'" >> $PROJECT_DIR/project/.env
 fi
 
 # installing dependencies and migrations
@@ -134,12 +134,6 @@ echo "DEBUG=False
 DEVEL=False
 ALLOWED_HOSTS='*'
 SECRET_KEY='fake-key'" >> $PROJECT_DIR/project/.env
-
-pip install -r $PROJECT_DIR/project/requirements.txt
-python $PROJECT_DIR/project/manage.py makemigrations
-python $PROJECT_DIR/project/manage.py migrate
-python $PROJECT_DIR/project/manage.py collectstatic --noinput
-python $PROJECT_DIR/project/manage.py loaddata fixtures/*
 
 #set uwsgi
 echo "Do you wish to set uwsgi for $PROJECT_NAME ? (y/n)"
@@ -168,6 +162,12 @@ if [ ! -z "$OWNER_USER" ]; then
 	echo "Changing the owner of $PROJECT_DIR to $OWNER_USER"
 	chown -R $OWNER_USER: $PROJECT_DIR
 fi
+
+pip install -r $PROJECT_DIR/project/requirements.txt
+python $PROJECT_DIR/project/manage.py makemigrations
+python $PROJECT_DIR/project/manage.py migrate
+python $PROJECT_DIR/project/manage.py collectstatic --noinput
+python $PROJECT_DIR/project/manage.py loaddata fixtures/*
 
 echo "All Done!"
 
