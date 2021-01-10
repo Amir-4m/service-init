@@ -9,6 +9,11 @@ randomPassword()
 	        </dev/urandom tr -dc '12345!#$qwertQWERTasdfgASDFGzxcvbZXCVB' | head -c8; echo ""
 		        }
 
+secretKeyGenerator()
+{
+	        </dev/urandom tr -dc 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)' | head -c50; echo ""
+		        }
+
 
 if [ -z "$PROJECT_NAME" ]; then
 	echo "Project name is required !"
@@ -130,10 +135,11 @@ CELERY_HOST='$RBMQ_HOST:5672/$PROJECT_NAME'" >> $PROJECT_DIR/project/.env
 fi
 
 # installing dependencies and migrations
+SECRET_KEY=$(secretKeyGenerator)
 echo "DEBUG=False
 DEVEL=False
 ALLOWED_HOSTS='*'
-SECRET_KEY='fake-key'" >> $PROJECT_DIR/project/.env
+SECRET_KEY='$SECRET_KEY'" >> $PROJECT_DIR/project/.env
 
 #set uwsgi
 echo "Do you wish to set uwsgi for $PROJECT_NAME ? (y/n)"
